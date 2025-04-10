@@ -1,0 +1,4 @@
+env/
+dataset-resized/
+.mypy_cache/
+evals/
