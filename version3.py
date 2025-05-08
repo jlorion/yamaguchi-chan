@@ -1,9 +1,20 @@
 import cv2
 import numpy as np
 import time
+import serial
+import time
+import pygame
 
+pygame.mixer.init()
+pygame.mixer.music.load("./chuyan.mp3")
 # Load your ONNX model
 net = cv2.dnn.readNetFromONNX("model.onnx")
+
+
+serialcomm = serial.Serial('COM3', 9600)
+serialcomm.timeout = 1
+
+turn = "on"
 
 # Create shorter display names for UI
 display_names = [
@@ -95,7 +106,16 @@ while True:
     # Only show confident predictions
     prediction_text = "Analyzing..."
     if smoothed_confidence > 0.55:  # Confidence threshold
+        if predicted_class == 1:
+            isFull = serialcomm.readline().decode('ascii')
+            if isFull == "": 
+                print("Cans is now OPEN")
+            else:
+                print("Can is FULL")
+                pygame.mixer.music.play()
+            serialcomm.write(turn.encode())
         prediction_text = f"{display_names[predicted_class]} ({smoothed_confidence*100:.1f}%)"
+    
     
     # Add UI elements
     # Title bar
@@ -114,11 +134,19 @@ while True:
     
     # Show the frame
     cv2.imshow('Waste Classification', display_frame)
+
+    if smoothed_confidence > 0.55:  # Confidence threshold
+        if predicted_class == 1:
+            serialcomm.reset_input_buffer()
+            time.sleep(1)
     
+    serialcomm.reset_input_buffer()
     # Exit on 'q' key
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+
 # Cleanup
+serialcomm.close()
 cap.release()
 cv2.destroyAllWindows()
